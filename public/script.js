@@ -87,14 +87,7 @@ if (togglePasswordVisibility) {
 
 // Show error message
 function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'fixed top-4 right-4 bg-red-500/10 border border-red-500/50 text-red-400 px-6 py-4 rounded-2xl shadow-lg z-50 animate-fade-in';
-    errorDiv.textContent = message;
-    document.body.appendChild(errorDiv);
-    
-    setTimeout(() => {
-        errorDiv.remove();
-    }, 3000);
+    alert(message);
 }
 
 // Start Bypass

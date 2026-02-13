@@ -1,18 +1,8 @@
 {
-  "functions": {
-    "api/bypass.js": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
   "rewrites": [
     {
       "source": "/api/bypass",
       "destination": "/api/bypass.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/public/$1"
     }
   ]
 }

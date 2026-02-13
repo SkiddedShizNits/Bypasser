@@ -1,1 +1,28 @@
-{}
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/generator.html"
+    },
+    {
+      "source": "/generator.html",
+      "destination": "/generator.html"
+    },
+    {
+      "source": "/api/generate",
+      "destination": "/api/generate"
+    },
+    {
+      "source": "/api/stats",
+      "destination": "/api/stats"
+    },
+    {
+      "source": "/api/bypass",
+      "destination": "/api/bypass"
+    },
+    {
+      "source": "/:instance",
+      "destination": "/api/instance"
+    }
+  ]
+}

